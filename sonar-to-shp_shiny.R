@@ -6,7 +6,8 @@ library(sp)
 library(htmltools)
 
 # Function to read sl2, sl3, slg binary files. Many thanks to @hbrmstr for
-# it and package `arabia`. 
+# it and package `arabia`
+# https://gitlab.com/hrbrmstr/arabia.git
 read_sl2 <- function(path, verbose=TRUE) {
   
   f <- file(path.expand(path), "rb")
@@ -178,9 +179,10 @@ ui <- fluidPage(
   )
 )
 
-# Define server logic required to draw a histogram ----
+# Define server logic  ----
 server <- function(input, output) {
   
+  # Set the maximum file size
   options(shiny.maxRequestSize = 100*1024^2)
   
   Dataset <- reactive({
@@ -189,8 +191,10 @@ server <- function(input, output) {
       return(data.frame())
     }
     
+    # Calculate the duration of progress bar loading
     N <- round(file.size(path.expand(input$file$datapath)) / 1024^2)
     
+    # Add progress bar
     withProgress(message = 'Reading data', value = 0, {
       
       for(i in 1:N){
@@ -202,9 +206,10 @@ server <- function(input, output) {
         incProgress(1/N)
       }
       
-      
+      # Read sonar file
       Dataset <- read_sl2(input$file$datapath)
       
+      # Recalculate main parameters a bit
       Dataset %>% 
         mutate(Depth = (waterDepth / 3.2808399) + input$sensorinput, # feet to meter conversation
                Long = lng_enc / 6356752.3142 * 180 / pi, # Mercator Meters to Degrees
@@ -268,7 +273,7 @@ server <- function(input, output) {
   )
   
   ### Download shapefile
-  # thanks to stackoverflow ))
+  # based on Stackoverflow
   # https://stackoverflow.com/questions/41707760/download-a-shape-file-from-shiny
   output$downloadshp <- downloadHandler(
     filename = "shapefile.zip",
@@ -283,8 +288,7 @@ server <- function(input, output) {
       zip_file <- file.path(temp_shp, "lowrance_shp.zip")
       shp_files <- list.files(temp_shp,
                               "lowrance",
-                              full.names = TRUE)
-      # the following zip method works for me in linux but substitute with whatever method working in your OS 
+                              full.names = TRUE) 
       zip_command <- paste("zip -j", 
                            zip_file, 
                            paste(shp_files, collapse = " "))
